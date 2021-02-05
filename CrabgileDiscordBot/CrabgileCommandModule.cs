@@ -22,8 +22,7 @@ namespace CrabgileDiscordBot {
                 await ctx.RespondAsync($"You are already hosting a meeting, {ctx.Member.Mention}!");
             }
 
-            //Delete user message.
-            await ctx.Message.DeleteAsync(CrabgileConstants.DELETE_USER_MESSAGE);
+            await TryDeleteUserMessage(ctx);
         }
 
         [Command("timebox"), Aliases("scrum")]
@@ -33,7 +32,6 @@ namespace CrabgileDiscordBot {
 
         [Command("meeting")]
         public async Task MeetingCommand(CommandContext ctx) {
-            await ctx.Message.DeleteAsync(CrabgileConstants.DELETE_USER_MESSAGE);
             await ctx.RespondAsync($"Creating a meeting...\n**Type !end to close the meeting, {ctx.Member.Mention}.**");
 
             if (!CrabgileMeeting.IsDiscordUserMeetingHost(ctx.Member)) {
@@ -43,27 +41,40 @@ namespace CrabgileDiscordBot {
             else {
                 await ctx.RespondAsync($"You are already hosting a meeting, {ctx.Member.Mention}!");
             }
+            await TryDeleteUserMessage(ctx);
         }
 
         [Command("end"), Aliases("end-meeting")]
         public async Task EndMeetingCommand(CommandContext ctx) {
-            await ctx.Message.DeleteAsync(CrabgileConstants.DELETE_USER_MESSAGE);
             if(CrabgileMeeting.IsDiscordUserMeetingHost(ctx.Member)) {
                 await CrabgileMeeting.GetMeetingFromHost(ctx.Member).CloseMeeting();
             }
             else {
                 await ctx.RespondAsync($"I'm afraid there's no meeting in progress, {ctx.Member.Mention}!");
             }
+            await TryDeleteUserMessage(ctx);
         }
 
         [Command ("begin"), Aliases("begin-meeting")]
         public async Task StartMeetingCommand(CommandContext ctx) {
-            await ctx.Message.DeleteAsync(CrabgileConstants.DELETE_USER_MESSAGE);
-
             CrabgileMeeting crabgileMeeting = CrabgileMeeting.GetMeetingFromHost(ctx.Member);
             if (crabgileMeeting is CrabgileTimebox) {
                 ((CrabgileTimebox)crabgileMeeting).BeginTimeboxMeeting();
             }
+            await TryDeleteUserMessage(ctx);
+        }
+
+        public async Task TryDeleteUserMessage(CommandContext ctx) {
+            //Delete user message.
+            try {
+                await ctx.Message.DeleteAsync(CrabgileConstants.DELETE_USER_MESSAGE);
+                return;
+            }
+            catch (Exception) {
+                Console.WriteLine(CrabgileConstants.INVALID_PERM_MESSAGE);
+            }
+            await Task.CompletedTask;
+            return;
         }
     }
 }
